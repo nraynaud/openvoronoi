@@ -24,6 +24,30 @@ bool pointInTriangle(ovd::Point p, ovd::Point p0, ovd::Point p1, ovd::Point p2)
     return s > 0 && t > 0 && (s + t) < doubleArea * sign;
 }
 
+std::ostream& operator<<(std::ostream& lhs, ovd::VertexType e) {
+    switch(e) {
+        case ovd::OUTER: lhs << "OUTER"; break;
+        case ovd::NORMAL: lhs << "NORMAL"; break;
+        case ovd::POINTSITE: lhs << "POINTSITE"; break;
+        case ovd::ENDPOINT: lhs << "ENDPOINT"; break;
+        case ovd::SEPPOINT: lhs << "SEPPOINT"; break;
+        case ovd::APEX: lhs << "APEX"; break;
+        case ovd::SPLIT: lhs << "SPLIT"; break;
+        default :
+            lhs << e; break;
+    }
+    return lhs;
+}
+
+std::map<ovd::VertexType, std::vector<ovd::HEVertex> > getVertices(ovd::HEGraph& g) {
+    std::map<ovd::VertexType, std::vector<ovd::HEVertex> > m;
+    BOOST_FOREACH( ovd::HEVertex v, g.vertices() ) {
+        std::cout << g[v].type << g[v].position << "|" << boost::degree(v, g.g) << std::endl;
+        m[g[v].type].push_back(v);
+    }
+    return m;
+}
+
 // very simple OpenVoronoi example program
 BOOST_AUTO_TEST_CASE( my_test )
 {
@@ -42,35 +66,30 @@ BOOST_AUTO_TEST_CASE( my_test )
     BOOST_CHECK_EQUAL(vd->num_faces(), 3);
     
     ovd::HEGraph& g = vd->get_graph_reference();
-    std::vector<ovd::Point> pointSites;
-    BOOST_FOREACH( ovd::HEVertex v, g.vertices() ) {
-        std::cout << g[v].position << "|" << boost::out_degree(v, g.g) << std::endl;
-        if ( g[v].type == ovd::POINTSITE ){
-            std::cout << g[v].position << "|" << boost::out_degree(v, g.g) << std::endl;
-            pointSites.push_back(g[v].position);
-        }
-    }
+    std::map<ovd::VertexType, std::vector<ovd::HEVertex> > vertices = getVertices(g);
+    std::vector<ovd::HEVertex> pointSites = vertices[ovd::POINTSITE];
     //check that we found the initial triangle
     BOOST_CHECK_EQUAL(pointSites.size(), 3);
+    ovd::Point p0 = g[pointSites[0]].position,
+        p1 = g[pointSites[1]].position,
+        p2 = g[pointSites[2]].position;
     //check that the unit square fits inside the initial triangle
-    BOOST_CHECK(pointInTriangle(ovd::Point(-1, -1), pointSites[0],pointSites[1],pointSites[2]));
-    //check that the unit square fits inside the initial triangle
-    BOOST_CHECK(pointInTriangle(ovd::Point(-1, 1), pointSites[0],pointSites[1],pointSites[2]));
-    //check that the unit square fits inside the initial triangle
-    BOOST_CHECK(pointInTriangle(ovd::Point(1, -1), pointSites[0],pointSites[1],pointSites[2]));
-    //check that the unit square fits inside the initial triangle
-    BOOST_CHECK(pointInTriangle(ovd::Point(1, 1), pointSites[0],pointSites[1],pointSites[2]));
-    std::cout << "____";
+    BOOST_CHECK(pointInTriangle(ovd::Point(-1, -1), p0, p1, p2));
+    BOOST_CHECK(pointInTriangle(ovd::Point(-1, 1), p0, p1, p2));
+    BOOST_CHECK(pointInTriangle(ovd::Point(1, -1), p0, p1, p2));
+    BOOST_CHECK(pointInTriangle(ovd::Point(1, 1), p0, p1, p2));
+    
+    BOOST_CHECK_EQUAL(vertices[ovd::NORMAL].size(), 1);
+    BOOST_CHECK_EQUAL(g[vertices[ovd::NORMAL][0]].position, ovd::Point(0, 0));
+    
+    std::cout << "____\nInserting one point at (0,0)";
     ovd::Point p(0,0);
     vd->insert_point_site(p); // this returns an int-handle to the point-site, but we do not use it here.
     
     std::cout << vd->print();
-
     vd2svg("minimal.svg", vd);
-    BOOST_FOREACH( ovd::HEVertex v, g.vertices() ) {
-        if ( g[v].type == ovd::POINTSITE )
-            std::cout << g[v].position << "|" << boost::degree(v, g.g) << std::endl;
-    }
+    vertices = getVertices(g);
     BOOST_CHECK_EQUAL(vd->num_faces(), 4);
+    BOOST_CHECK_EQUAL(vertices[ovd::NORMAL].size(), 3);
     delete vd;
 }
