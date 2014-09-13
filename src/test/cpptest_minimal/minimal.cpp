@@ -51,7 +51,7 @@ std::map<ovd::VertexType, std::vector<ovd::HEVertex> > getVertices(ovd::HEGraph&
 // very simple OpenVoronoi example program
 BOOST_AUTO_TEST_CASE( my_test )
 {
-    ovd::VoronoiDiagram* vd = new ovd::VoronoiDiagram(1,100); // (r, bins)
+    ovd::VoronoiDiagram vd(1,100); // (r, bins)
     // double r: radius of circle within which all input geometry must fall. use 1 (unit-circle). Scale geometry if necessary.
     // int bins: bins for face-grid search. roughly sqrt(n), where n is the number of sites is good according to Held.
      
@@ -61,11 +61,11 @@ BOOST_AUTO_TEST_CASE( my_test )
     std::cout << "system " <<ovd::system() << "\n";
     std::cout << "processor " <<ovd::processor() << "\n";
     
-    std::cout << vd->print();
-    vd2svg("empty.svg", vd);
-    BOOST_CHECK_EQUAL(vd->num_faces(), 3);
+    std::cout << vd.print();
+    vd2svg("empty.svg", &vd);
+    BOOST_CHECK_EQUAL(vd.num_faces(), 3);
     
-    ovd::HEGraph& g = vd->get_graph_reference();
+    ovd::HEGraph& g = vd.get_graph_reference();
     std::map<ovd::VertexType, std::vector<ovd::HEVertex> > vertices = getVertices(g);
     std::vector<ovd::HEVertex> pointSites = vertices[ovd::POINTSITE];
     //check that we found the initial triangle
@@ -84,12 +84,11 @@ BOOST_AUTO_TEST_CASE( my_test )
     
     std::cout << "____\nInserting one point at (0,0)";
     ovd::Point p(0,0);
-    vd->insert_point_site(p); // this returns an int-handle to the point-site, but we do not use it here.
+    vd.insert_point_site(p); // this returns an int-handle to the point-site, but we do not use it here.
     
-    std::cout << vd->print();
-    vd2svg("minimal.svg", vd);
+    std::cout << vd.print();
+    vd2svg("minimal.svg", &vd);
     vertices = getVertices(g);
-    BOOST_CHECK_EQUAL(vd->num_faces(), 4);
+    BOOST_CHECK_EQUAL(vd.num_faces(), 4);
     BOOST_CHECK_EQUAL(vertices[ovd::NORMAL].size(), 3);
-    delete vd;
 }
